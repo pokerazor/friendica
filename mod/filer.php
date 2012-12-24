@@ -25,7 +25,13 @@ function filer_content(&$a) {
 		$filetags = file_tag_file_to_list($filetags,'file');
                 $filetags = explode(",", $filetags);
 		$tpl = get_markup_template("filer_dialog.tpl");
-		$o = replace_macros($tpl, array(
+
+		$includes = array(
+			'$field_combobox' => 'field_combobox.tpl',
+		);
+		$includes = set_template_includes($a->theme['template_engine'], $includes);
+
+		$o = replace_macros($tpl,$includes + array(
 			'$field' => array('term', t("Save to Folder:"), '', '', $filetags, t('- select -')),
 			'$submit' => t('Save'),
 		));

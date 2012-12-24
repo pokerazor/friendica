@@ -12,7 +12,7 @@ require_once('library/Mobile_Detect/Mobile_Detect.php');
 require_once('include/features.php');
 
 define ( 'FRIENDICA_PLATFORM',     'Friendica');
-define ( 'FRIENDICA_VERSION',      '3.1.1561' );
+define ( 'FRIENDICA_VERSION',      '3.1.1565' );
 define ( 'DFRN_PROTOCOL_VERSION',  '2.23'    );
 define ( 'DB_UPDATE_VERSION',      1157      );
 
@@ -380,8 +380,12 @@ if(! class_exists('App')) {
 			'videoheight' => 350,
 			'force_max_items' => 0,
 			'thread_allow' => true,
-			'stylesheet' => ''
+			'stylesheet' => '',
+			'template_engine' => 'internal',
 		);
+
+		public $smarty3_ldelim = '{{';
+		public $smarty3_rdelim = '}}';
 
 		private $scheme;
 		private $hostname;
@@ -613,6 +617,16 @@ if(! class_exists('App')) {
 			if(!isset($this->page['htmlhead']))
 				$this->page['htmlhead'] = '';
 			$tpl = get_markup_template('head.tpl');
+
+			// If we're using Smarty, then doing replace_macros() will replace
+			// any unrecognized variables with a blank string. Since we delay
+			// replacing $stylesheet until later, we need to replace it now
+			// with another variable name
+			if($this->theme['template_engine'] === 'smarty3')
+				$stylesheet = $this->smarty3_ldelim . '$stylesheet' . $this->smarty3_rdelim;
+			else
+				$stylesheet = '$stylesheet';
+
 			$this->page['htmlhead'] = replace_macros($tpl,array(
 				'$baseurl' => $this->get_baseurl(), // FIXME for z_path!!!!
 				'$local_user' => local_user(),
@@ -621,7 +635,8 @@ if(! class_exists('App')) {
 				'$comment' => t('Comment'),
 				'$showmore' => t('show more'),
 				'$showfewer' => t('show fewer'),
-				'$update_interval' => $interval
+				'$update_interval' => $interval,
+				'$stylesheet' => $stylesheet
 			)) . $this->page['htmlhead'];
 		}
 
@@ -955,7 +970,15 @@ if(! function_exists('login')) {
 		}
 
 
-		$o .= replace_macros($tpl,array(
+		$includes = array(
+			'$field_input' => 'field_input.tpl',
+			'$field_password' => 'field_password.tpl',
+			'$field_openid' => 'field_openid.tpl',
+			'$field_checkbox' => 'field_checkbox.tpl',
+		);
+		$includes = set_template_includes($a->theme['template_engine'], $includes);
+
+		$o .= replace_macros($tpl,$includes + array(
 
 			'$dest_url'     => $dest_url,
 			'$logout'       => t('Logout'),
@@ -1324,16 +1347,25 @@ if(! function_exists('profile_sidebar')) {
 
 		$tpl = get_markup_template('profile_vcard.tpl');
 
-		$o .= replace_macros($tpl, array(
+
+		$includes = array(
+			'$diaspora_vcard' => 'diaspora_vcard.tpl'
+		);
+		$includes = set_template_includes($a->theme['template_engine'], $includes);
+
+		if($a->theme['template_engine'] === 'internal')
+			$location = template_escape($location);
+
+		$o .= replace_macros($tpl, $includes + array(
 			'$profile' => $profile,
 			'$connect'  => $connect,
 			'$wallmessage' => $wallmessage,
-			'$location' => template_escape($location),
+			'$location' => $location,
 			'$gender'   => $gender,
 			'$pdesc'	=> $pdesc,
 			'$marital'  => $marital,
 			'$homepage' => $homepage,
-			'$diaspora' => $diaspora,
+			'$diaspora_info' => $diaspora,
 			'$contact_block' => $contact_block,
 		));
 
@@ -1912,5 +1944,20 @@ function clear_cache($basepath = "", $path = "") {
 				unlink($fullpath);
 		}
 		closedir($dh);
+	}
+}
+
+function set_template_engine(&$a, $engine = 'internal') {
+
+	$a->theme['template_engine'] = 'internal';
+
+	if(is_writable('view/smarty3/')) {
+		switch($engine) {
+			case 'smarty3':
+				$a->theme['template_engine'] = 'smarty3';
+				break;
+			default:
+				break;
+		}
 	}
 }
