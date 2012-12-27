@@ -12,7 +12,7 @@ require_once('library/Mobile_Detect/Mobile_Detect.php');
 require_once('include/features.php');
 
 define ( 'FRIENDICA_PLATFORM',     'Friendica');
-define ( 'FRIENDICA_VERSION',      '3.1.1565' );
+define ( 'FRIENDICA_VERSION',      '3.1.1569' );
 define ( 'DFRN_PROTOCOL_VERSION',  '2.23'    );
 define ( 'DB_UPDATE_VERSION',      1157      );
 
@@ -1345,12 +1345,17 @@ if(! function_exists('profile_sidebar')) {
 
 		$tpl = get_markup_template('profile_vcard.tpl');
 
+		$p = array();
+		foreach($profile as $k => $v) {
+			$k = str_replace('-','_',$k);
+			$p[$k] = $v;
+		}
 
 		if($a->theme['template_engine'] === 'internal')
 			$location = template_escape($location);
 
 		$o .= replace_macros($tpl, array(
-			'$profile' => $profile,
+			'$profile' => $p,
 			'$connect'  => $connect,
 			'$wallmessage' => $wallmessage,
 			'$location' => $location,
@@ -1358,7 +1363,7 @@ if(! function_exists('profile_sidebar')) {
 			'$pdesc'	=> $pdesc,
 			'$marital'  => $marital,
 			'$homepage' => $homepage,
-			'$diaspora_info' => $diaspora,
+			'$diaspora' => $diaspora,
 			'$contact_block' => $contact_block,
 		));
 

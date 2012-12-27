@@ -32,9 +32,9 @@
 			<span class="city-state-zip">
 				<span class="locality">{{$profile.locality}}</span>{{if $profile.locality}}, {{/if}}
 				<span class="region">{{$profile.region}}</span>
-				<span class="postal-code">{{$profile.postal-code}}</span>
+				<span class="postal-code">{{$profile.postal_code}}</span>
 			</span>
-			{{if $profile.country-name}}<span class="country-name">{{$profile.country-name}}</span>{{/if}}
+			{{if $profile.country_name}}<span class="country-name">{{$profile.country_name}}</span>{{/if}}
 		</dd>
 		</dl>
 	{{/if}}
@@ -49,7 +49,7 @@
         class="homepage-label">{{$homepage}}</dt><dd class="homepage-url"><a
         href="{{$profile.homepage}}" target="external-link">{{$profile.homepage}}</a></dd></dl>{{/if}}
 
-	{{include file="diaspora_vcard.tpl" diaspora=$diaspora_info}}
+	{{include file="diaspora_vcard.tpl"}}
 	
 	<div id="profile-extra-links">
 		<ul>
