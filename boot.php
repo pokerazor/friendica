@@ -12,7 +12,7 @@ require_once('library/Mobile_Detect/Mobile_Detect.php');
 require_once('include/features.php');
 
 define ( 'FRIENDICA_PLATFORM',     'Friendica');
-define ( 'FRIENDICA_VERSION',      '3.1.1576' );
+define ( 'FRIENDICA_VERSION',      '3.1.1578' );
 define ( 'DFRN_PROTOCOL_VERSION',  '2.23'    );
 define ( 'DB_UPDATE_VERSION',      1157      );
 
@@ -847,9 +847,10 @@ if(! function_exists('check_config')) {
 									'$error' => sprintf( t('Update %s failed. See error logs.'), $x)
 								));
 								$subject=sprintf(t('Update Error at %s'), $a->get_baseurl());
-									
+								require_once('include/email.php');
+								$subject = email_header_encode($subject,'UTF-8');	
 								mail($a->config['admin_email'], $subject, $email_msg,
-									'From: ' . t('Administrator') . '@' . $_SERVER['SERVER_NAME'] . "\n"
+									'From: ' . 'Administrator' . '@' . $_SERVER['SERVER_NAME'] . "\n"
 									. 'Content-type: text/plain; charset=UTF-8' . "\n"
 									. 'Content-transfer-encoding: 8bit' );
 								//try the logger
@@ -1107,6 +1108,10 @@ if(! function_exists('get_max_import_size')) {
  * Profile information is placed in the App structure for later retrieval.
  * Honours the owner's chosen theme for display.
  *
+ * IMPORTANT: Should only be run in the _init() functions of a module. That ensures that
+ * the theme is chosen before the _init() function of a theme is run, which will usually
+ * load a lot of theme-specific content
+ *
  */
 
 if(! function_exists('profile_load')) {
@@ -1166,7 +1171,7 @@ if(! function_exists('profile_load')) {
 
 		if(! $r[0]['is-default']) {
 			$x = q("select `pub_keywords` from `profile` where uid = %d and `is-default` = 1 limit 1",
-					intval($profile_uid)
+					intval($r[0]['profile_uid'])
 			);
 			if($x && count($x))
 				$r[0]['pub_keywords'] = $x[0]['pub_keywords'];
@@ -1174,7 +1179,7 @@ if(! function_exists('profile_load')) {
 
 		$a->profile = $r[0];
 
-		$a->profile['mobile-theme'] = get_pconfig($profile_uid, 'system', 'mobile_theme');
+		$a->profile['mobile-theme'] = get_pconfig($a->profile['profile_uid'], 'system', 'mobile_theme');
 
 
 		$a->page['title'] = $a->profile['name'] . " @ " . $a->config['sitename'];
@@ -1184,6 +1189,8 @@ if(! function_exists('profile_load')) {
 		/**
 		 * load/reload current theme info
 		 */
+
+		set_template_engine($a); // reset the template engine to the default in case the user's theme doesn't specify one
 
 		$theme_info_file = "view/theme/".current_theme()."/theme.php";
 		if (file_exists($theme_info_file)){
@@ -1611,7 +1618,7 @@ if(! function_exists('current_theme')) {
 //		$mobile_detect = new Mobile_Detect();
 //		$is_mobile = $mobile_detect->isMobile() || $mobile_detect->isTablet();
 		$is_mobile = $a->is_mobile || $a->is_tablet;
-	
+
 		if($is_mobile) {
 			if(isset($_SESSION['show-mobile']) && !$_SESSION['show-mobile']) {
 				$system_theme = '';
