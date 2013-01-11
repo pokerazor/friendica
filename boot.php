@@ -12,7 +12,7 @@ require_once('library/Mobile_Detect/Mobile_Detect.php');
 require_once('include/features.php');
 
 define ( 'FRIENDICA_PLATFORM',     'Friendica');
-define ( 'FRIENDICA_VERSION',      '3.1.1582' );
+define ( 'FRIENDICA_VERSION',      '3.1.1584' );
 define ( 'DFRN_PROTOCOL_VERSION',  '2.23'    );
 define ( 'DB_UPDATE_VERSION',      1157      );
 
@@ -384,8 +384,14 @@ if(! class_exists('App')) {
 			'template_engine' => 'internal',
 		);
 
-		public $smarty3_ldelim = '{{';
-		public $smarty3_rdelim = '}}';
+		private $ldelim = array(
+			'internal' => '',
+			'smarty3' => '{{'
+		);
+		private $rdelim = array(
+			'internal' => '',
+			'smarty3' => '}}'
+		);
 
 		private $scheme;
 		private $hostname;
@@ -623,7 +629,7 @@ if(! class_exists('App')) {
 			// replacing $stylesheet until later, we need to replace it now
 			// with another variable name
 			if($this->theme['template_engine'] === 'smarty3')
-				$stylesheet = $this->smarty3_ldelim . '$stylesheet' . $this->smarty3_rdelim;
+				$stylesheet = $this->get_template_ldelim('smarty3') . '$stylesheet' . $this->get_template_rdelim('smarty3');
 			else
 				$stylesheet = '$stylesheet';
 
@@ -665,14 +671,6 @@ if(! class_exists('App')) {
 			return $this->curl_headers;
 		}
 
-		function get_template_engine() {
-			return get_template_engine($this);
-		}
-
-		function set_template_engine($engine = 'internal') {
-			return set_template_engine($this,$engine);
-		}
-
 		function get_cached_avatar_image($avatar_image){
 			if($this->cached_profile_image[$avatar_image])
 				return $this->cached_profile_image[$avatar_image];
@@ -695,6 +693,31 @@ if(! class_exists('App')) {
 			return $this->cached_profile_image[$avatar_image];
 		}
 
+		function get_template_engine() {
+			return $this->theme['template_engine'];
+		}
+
+		function set_template_engine($engine = 'internal') {
+
+			$this->theme['template_engine'] = 'internal';
+
+			switch($engine) {
+				case 'smarty3':
+					if(is_writable('view/smarty3/'))
+						$this->theme['template_engine'] = 'smarty3';
+					break;
+				default:
+					break;
+			}
+		}
+
+		function get_template_ldelim($engine = 'internal') {
+			return $this->ldelim[$engine];
+		}
+
+		function get_template_rdelim($engine = 'internal') {
+			return $this->rdelim[$engine];
+		}
 
 	}
 }
@@ -847,10 +870,6 @@ if(! function_exists('check_config')) {
 							$retval = $func();
 							if($retval) {
 								//send the administrator an e-mail
-
-							$engine = get_app()->get_template_engine();
-							get_app()->set_template_engine();
-
 								$email_tpl = get_intltext_template("update_fail_eml.tpl");
 								$email_msg = replace_macros($email_tpl, array(
 									'$sitename' => $a->config['sitename'],
@@ -858,9 +877,6 @@ if(! function_exists('check_config')) {
 									'$update' => $x,
 									'$error' => sprintf( t('Update %s failed. See error logs.'), $x)
 								));
-
-								get_app()->set_template_engine($engine);
-
 								$subject=sprintf(t('Update Error at %s'), $a->get_baseurl());
 								require_once('include/email.php');
 								$subject = email_header_encode($subject,'UTF-8');	
@@ -1205,7 +1221,7 @@ if(! function_exists('profile_load')) {
 		 * load/reload current theme info
 		 */
 
-		set_template_engine($a); // reset the template engine to the default in case the user's theme doesn't specify one
+		$a->set_template_engine(); // reset the template engine to the default in case the user's theme doesn't specify one
 
 		$theme_info_file = "view/theme/".current_theme()."/theme.php";
 		if (file_exists($theme_info_file)){
@@ -1968,20 +1984,9 @@ function clear_cache($basepath = "", $path = "") {
 }
 
 function set_template_engine(&$a, $engine = 'internal') {
+// This function is no longer necessary, but keep it as a wrapper to the class method
+// to avoid breaking themes again unnecessarily
 
-	$a->theme['template_engine'] = 'internal';
-
-	if(is_writable('view/smarty3/')) {
-		switch($engine) {
-			case 'smarty3':
-				$a->theme['template_engine'] = 'smarty3';
-				break;
-			default:
-				break;
-		}
-	}
+	$a->set_template_engine($engine);
 }
 
-function get_template_engine($a) {
-	return $a->theme['template_engine'];
-}
